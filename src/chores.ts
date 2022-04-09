@@ -31,7 +31,6 @@
 
 // When looking for a job find incomplete/abandoned processes for this work type that it can participate in
 
-
 type Worker = { id: string; name: string };
 
 export type JobType = "TreeCutting" | "Building" | "Mining" | "PlantingCrops" | "Harvesting" | "Gathering" | "Crafting";
@@ -46,9 +45,7 @@ type FarmField = { id: string; jobs: Job[] };
 
 const tree: Tree = {
   id: "tree123",
-  jobs: [
-    { units_of_work_left: 2.4, job_type: "TreeCutting" },
-  ],
+  jobs: [{ units_of_work_left: 2.4, job_type: "TreeCutting" }],
 };
 
 const farmField: FarmField = {
@@ -64,21 +61,9 @@ type WorkerAssignment = {
 
 const worker = { id: "123", name: "Must Eaterson" };
 
-const assignments: WorkerAssignment[] = [
-  { job_type: "PlantingCrops", target_id: farmField.id,  worker_id: worker.id },
-];
-
-type JobProcess = {
-  job_type: string;
-  resources_provoded: Resources[];
-  resources_needed: Resource[];
-  max_participants: number;
-  participant_ids: Entity[];
-  remaining_work: number;
-}
+const assignments: WorkerAssignment[] = [{ job_type: "PlantingCrops", target_id: farmField.id, worker_id: worker.id }];
 
 export {};
-
 
 /*
 There is a designated stockpile area near the campfire (center of the settlement), that doesn't allow building or any vegetation on it
