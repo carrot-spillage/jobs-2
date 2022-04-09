@@ -1,0 +1,10 @@
+rescript = 1
+rule cp
+  command = cp $i $out
+rule touch
+ command = touch $out
+o farming.cmi : cp ../bs/src/farming.cmi
+o farming.cmj : cp ../bs/src/farming.cmj
+o farming.cmt : cp ../bs/src/farming.cmt
+o farming.res : cp ../../src/farming.res
+build install.stamp : touch farming.cmi farming.cmj 
