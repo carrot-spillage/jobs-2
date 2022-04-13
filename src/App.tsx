@@ -1,35 +1,18 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import "./App.css";
-import { create_job_generator, match_workers_with_jobs, Job } from "./careful/activity";
+import {
+  create_job_generator,
+  match_workers_with_jobs,
+  Job,
+  WorkProcess,
+  join_or_create_work_process,
+} from "./careful/activity";
 import {
   advance_work_process_state,
   CompleteWorkProcessState,
   IncompleteWorkProcessState,
   Worker,
 } from "./careful/advance_work_process";
-
-let last_id = 1;
-
-let new_id = () => {
-  last_id++;
-  return last_id;
-};
-
-type WorkProcess = {
-  id: number;
-  units_of_work: number;
-  job_id: number;
-  max_workers: number;
-
-  state: IncompleteWorkProcessState;
-  worker_ids: number[];
-};
-
-type JoinOrCreateWorkProcessResult = {
-  type: "joined" | "created";
-  worker: Worker;
-  updated_work_processes: WorkProcess[];
-};
 
 type SimViewState = {
   jobs: Job[];
@@ -288,32 +271,6 @@ function useInterval(callback: () => void, delay = 100) {
 
 export default App;
 
-function join_or_create_work_process(
-  worker: Worker,
-  job: Job,
-  available_work_processess: WorkProcess[]
-): JoinOrCreateWorkProcessResult {
-  let available_process_index = available_work_processess.findIndex(
-    (x) => x.max_workers > x.worker_ids.length && job.id === x.job_id
-  );
-
-  if (available_process_index >= 0) {
-    return {
-      type: "joined",
-      worker,
-      updated_work_processes: available_work_processess.map((x, i) =>
-        i === available_process_index ? join_work_process(x, worker) : x
-      ),
-    };
-  } else {
-    return {
-      type: "created",
-      worker,
-      updated_work_processes: [...available_work_processess, create_work_process(worker, job)],
-    };
-  }
-}
-
 function update_state_with_job_results(
   sim_view: SimViewState,
   work_processes: WorkProcess[],
@@ -339,29 +296,5 @@ function update_state_with_work_process_results(
     ...sim_view,
     work_processes: updated_work_processes.filter((x) => !x.state.is_complete) as WorkProcess[],
     jobless_worker_ids: [...sim_view.jobless_worker_ids, ...new_jobless_worker_ids],
-  };
-}
-
-function join_work_process(work_process: WorkProcess, worker: Worker): WorkProcess {
-  return {
-    ...work_process,
-    worker_ids: [...work_process.worker_ids, worker.id],
-  };
-}
-
-function create_work_process(worker: Worker, job: Job): WorkProcess {
-  const units_of_work = 10; // TODO: make this configurable
-  return {
-    id: new_id(),
-    job_id: job.id,
-    max_workers: job.name === "Harvesting" ? 2 : 1, // TODO: make this configurable
-    state: {
-      is_complete: false,
-      quality_counter: { instances: 0, points: 0 },
-      units_of_work_left: units_of_work,
-      work_chunks: [],
-    },
-    units_of_work,
-    worker_ids: [worker.id],
   };
 }

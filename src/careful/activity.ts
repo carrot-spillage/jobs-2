@@ -5,6 +5,7 @@ import {
   SkillType,
   Worker,
 } from "./advance_work_process";
+import { new_id } from "./new_id";
 
 type ActivityUpdate = {
   fatigue: number;
@@ -23,33 +24,33 @@ function can_keep_working(interval: number, fatigue: number): ActivityUpdate {
   return { fatigue, is_finished: false };
 }
 
-function can_keep_resting(interval: number, fatigue: number, quality_of_rest: number): ActivityUpdate {
-  fatigue -= interval * default_resting_speed * quality_of_rest;
-  if (fatigue <= 0) {
-    return { fatigue: 0, is_finished: true };
-  }
+// function can_keep_resting(interval: number, fatigue: number, quality_of_rest: number): ActivityUpdate {
+//   fatigue -= interval * default_resting_speed * quality_of_rest;
+//   if (fatigue <= 0) {
+//     return { fatigue: 0, is_finished: true };
+//   }
 
-  return { fatigue, is_finished: false };
-}
+//   return { fatigue, is_finished: false };
+// }
 
-function update_work_process(
-  workers: Worker[],
-  state: IncompleteWorkProcessState,
-  skill_type: SkillType,
-  interval: number
-) {
-  if (workers.some((x) => x.fatigue >= 1)) {
-    throw new Error("We must never get tired workers here");
-  }
+// function update_work_process(
+//   workers: Worker[],
+//   state: IncompleteWorkProcessState,
+//   skill_type: SkillType,
+//   interval: number
+// ) {
+//   if (workers.some((x) => x.fatigue >= 1)) {
+//     throw new Error("We must never get tired workers here");
+//   }
 
-  const new_state = advance_work_process_state(workers, state, skill_type, interval);
+//   const new_state = advance_work_process_state(workers, state, skill_type, interval);
 
-  let tired_workers = workers.filter((x) => x.fatigue >= 1);
-  return {
-    state: new_state,
-    tired_workers,
-  };
-}
+//   let tired_workers = workers.filter((x) => x.fatigue >= 1);
+//   return {
+//     state: new_state,
+//     tired_workers,
+//   };
+// }
 
 export type Job = {
   id: Entity;
@@ -97,3 +98,71 @@ function sort_workers_by_skill(workers: Worker[], skill_type: SkillType) {
     (a, b) => b.skills.find((x) => x.type === skill_type)!.value - a.skills.find((x) => x.type === skill_type)!.value
   );
 }
+
+export function join_or_create_work_process(
+  worker: Worker,
+  job: Job,
+  available_work_processess: WorkProcess[]
+): JoinOrCreateWorkProcessResult {
+  let available_process_index = available_work_processess.findIndex(
+    (x) => x.max_workers > x.worker_ids.length + x.tentative_worker_ids.length && job.id === x.job_id
+  );
+
+  if (available_process_index >= 0) {
+    return {
+      type: "joined",
+      worker,
+      updated_work_processes: available_work_processess.map((x, i) =>
+        i === available_process_index ? join_work_process(x, worker) : x
+      ),
+    };
+  } else {
+    return {
+      type: "created",
+      worker,
+      updated_work_processes: [...available_work_processess, create_work_process(worker, job)],
+    };
+  }
+}
+
+function join_work_process(work_process: WorkProcess, worker: Worker): WorkProcess {
+  return {
+    ...work_process,
+    tentative_worker_ids: [...work_process.tentative_worker_ids, worker.id],
+  };
+}
+
+function create_work_process(worker: Worker, job: Job): WorkProcess {
+  const units_of_work = 10; // TODO: make this configurable
+  return {
+    id: new_id(),
+    job_id: job.id,
+    max_workers: job.name === "Harvesting" ? 2 : 1, // TODO: make this configurable
+    state: {
+      is_complete: false,
+      quality_counter: { instances: 0, points: 0 },
+      units_of_work_left: units_of_work,
+      work_chunks: [],
+    },
+    units_of_work,
+    tentative_worker_ids: [worker.id],
+    worker_ids: [],
+  };
+}
+
+export type WorkProcess = {
+  id: number;
+  units_of_work: number;
+  job_id: number;
+  max_workers: number;
+
+  state: IncompleteWorkProcessState;
+  worker_ids: number[];
+  tentative_worker_ids: number[];
+};
+
+export type JoinOrCreateWorkProcessResult = {
+  type: "joined" | "created";
+  worker: Worker;
+  updated_work_processes: WorkProcess[];
+};
